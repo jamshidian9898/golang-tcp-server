@@ -1,8 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"errors"
+	"io"
 	"net"
+	"time"
 )
 
 func main() {
@@ -12,21 +14,36 @@ func main() {
 	}
 	defer listener.Close()
 
+	for i := 0; i < 4; i++ {
+		go ListenForConnection(listener)
+	}
+	c := make(chan struct{})
+	<-c
+}
+
+func ListenForConnection(listener net.Listener) error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			panic(err)
 		}
-		HandelConnection(conn)
-		conn.Close()
+		go func() {
+			HandleConnection(conn)
+			conn.Close()
+		}()
 	}
-
 }
 
-func HandelConnection(conn net.Conn) {
+func HandleConnection(conn net.Conn) {
+	<-time.After(40 * time.Microsecond)
+
 	incomingMessage := make([]byte, 1024)
 	_, err := conn.Read(incomingMessage)
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			// panic(err)
+			return
+		}
 		panic(err)
 	}
 
@@ -43,8 +60,7 @@ Connection: Closed
 </body>
 </html>`
 
-	_, err = conn.Write([]byte(httpResponse))
-	if err != nil {
+	if _, err := conn.Write([]byte(httpResponse)); err != nil {
 		panic(err)
 	}
 
