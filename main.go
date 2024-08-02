@@ -12,18 +12,23 @@ func main() {
 	}
 	defer listener.Close()
 
-	conn, err := listener.Accept()
-	if err != nil {
-		panic(err)
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			panic(err)
+		}
+		HandelConnection(conn)
+		conn.Close()
 	}
-	defer conn.Close()
 
+}
+
+func HandelConnection(conn net.Conn) {
 	incomingMessage := make([]byte, 1024)
-	_, err = conn.Read(incomingMessage)
+	_, err := conn.Read(incomingMessage)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(incomingMessage))
 
 	httpResponse := `HTTP/1.1 200 OK
 Date: Mon, 27 Jul 2009 12:28:53 GMT
